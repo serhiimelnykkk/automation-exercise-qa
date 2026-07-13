@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "pnpm playwright test --reporter=list --reporter=allure-playwright --project chromium --trace on",
-    "ui": "pnpm playwright test --reporter=list --reporter=allure-playwright --project chromium --ui",
+    "ui": "pnpm playwright test --project chromium --ui",
     "report": "allure generate allure-results --clean && allure open",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
