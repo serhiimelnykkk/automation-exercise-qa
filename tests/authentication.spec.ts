@@ -179,7 +179,12 @@ test.describe('Authentication UI Tests', () => {
   });
 
   test.describe('Login & Login Validations', () => {
+    test.describe.configure({ mode: 'serial' });
+
     test.beforeAll(async ({ request }) => {
+      const uniqueEmail = `login_test_${Date.now()}@example.com`;
+      testData.loginCredentials.email = uniqueEmail;
+
       const userApiClient = new UserApiClient(request);
       await userApiClient.createUser(testData.loginCredentials);
     });
@@ -248,6 +253,77 @@ test.describe('Authentication UI Tests', () => {
         await expect(loginPage.loginEmailInput).toHaveJSProperty('validity.valid', false);
         await expect(page).toHaveURL(/\/login$/);
       }
+    });
+
+    test('TC-AUTH-22: User login fails with incorrect password', async ({ loginPage, page }) => {
+      await loginPage.navigateToLogin();
+      await expect(loginPage.loginHeading).toBeVisible();
+
+      await loginPage.fillLoginForm(testData.loginCredentials.email, 'WrongPassword123');
+      await loginPage.clickLogin();
+
+      await expect(loginPage.loginErrorText).toHaveText('Your email or password is incorrect!');
+      await expect(page).toHaveURL(/\/login$/);
+    });
+
+    test('TC-AUTH-23: User login fails with unregistered email', async ({ loginPage, page }) => {
+      await loginPage.navigateToLogin();
+      await expect(loginPage.loginHeading).toBeVisible();
+
+      await loginPage.fillLoginForm('unregistered_user_12345@example.com', 'SomePassword123');
+      await loginPage.clickLogin();
+
+      await expect(loginPage.loginErrorText).toHaveText('Your email or password is incorrect!');
+      await expect(page).toHaveURL(/\/login$/);
+    });
+
+    test('TC-AUTH-24: User signup fails with an already registered email address', async ({ loginPage, page }) => {
+      await loginPage.navigateToLogin();
+      await expect(loginPage.signupHeading).toBeVisible();
+
+      await loginPage.fillSignupForm(testData.loginCredentials.name, testData.loginCredentials.email);
+      await loginPage.clickSignup();
+
+      await expect(loginPage.signupErrorText).toHaveText('Email Address already exist!');
+      await expect(page).toHaveURL(/\/signup$/);
+    });
+
+    test('TC-AUTH-25: User logs out successfully', async ({ loginPage, page }) => {
+      await loginPage.navigateToLogin();
+      await loginPage.fillLoginForm(testData.loginCredentials.email, testData.loginCredentials.password);
+      await loginPage.clickLogin();
+      await expect(page).toHaveURL(/\/$/);
+      await expect(loginPage.loggedInAsText).toContainText(`Logged in as ${testData.loginCredentials.name}`);
+
+      await loginPage.clickLogout();
+      await expect(page).toHaveURL(/\/login$/);
+      await expect(loginPage.signupLoginLink).toBeVisible();
+      await expect(loginPage.loggedInAsText).toBeHidden();
+    });
+
+    test('TC-AUTH-26: User deletes account via UI', async ({ loginPage, accountDeletedPage, page, userApiClient }) => {
+      const uniqueEmail = `delete_ui_test_${Date.now()}@example.com`;
+      const uniqueUser = {
+        ...testData.loginCredentials,
+        email: uniqueEmail,
+        name: 'Delete UI User'
+      };
+
+      await userApiClient.createUser(uniqueUser);
+
+      await loginPage.navigateToLogin();
+      await loginPage.fillLoginForm(uniqueUser.email, uniqueUser.password);
+      await loginPage.clickLogin();
+      await expect(page).toHaveURL(/\/$/);
+      await expect(loginPage.loggedInAsText).toContainText(`Logged in as ${uniqueUser.name}`);
+
+      await loginPage.clickDeleteAccount();
+      await expect(page).toHaveURL(/\/delete_account$/);
+      await expect(accountDeletedPage.heading).toBeVisible();
+
+      await accountDeletedPage.clickContinue();
+      await expect(page).toHaveURL(/\/$/);
+      await expect(loginPage.loggedInAsText).toBeHidden();
     });
   });
 });
