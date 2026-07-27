@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "pnpm playwright test --reporter=list --reporter=allure-playwright --project chromium --trace on",
+    "test": "pnpm dlx rimraf allure-results && pnpm playwright test --reporter=list --reporter=allure-playwright --project chromium --trace on",
     "ui": "pnpm playwright test --project chromium --ui",
     "report": "allure generate allure-results --clean && allure open",
     "lint": "eslint .",
